@@ -847,15 +847,10 @@ async def promptflow_request(request):
         logging.error(f"An error occurred while making promptflow_request: {e}")
 
 
-async def send_chat_request(request_body, request_headers):
-    filtered_messages = []
-    messages = request_body.get("messages", [])
-    for message in messages:
-        if message.get("role") != 'tool':
-            filtered_messages.append(message)
-            
-    request_body['messages'] = filtered_messages
-    model_args = prepare_model_args(request_body, request_headers)
+async def send_chat_request(request):
+    filtered_messages = [message for message in request['messages'] if message['role'] != 'tool']
+    request['messages'] = filtered_messages
+    model_args = prepare_model_args(request)
 
     try:
         azure_openai_client = init_openai_client()
