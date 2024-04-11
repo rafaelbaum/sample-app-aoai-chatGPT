@@ -18,6 +18,18 @@ export const ShareButton: React.FC<ButtonProps> = ({ onClick, text }) => {
   )
 }
 
+export const StorageButton: React.FC<ButtonProps> = ({ onClick, text }) => {
+
+  return (
+    <CommandBarButton
+      className={styles.shareButtonRoot}
+      iconProps={{ iconName: 'cilStorage' }}
+      onClick={onClick}
+      text={text}
+    />
+  )
+}
+
 export const HistoryButton: React.FC<ButtonProps> = ({ onClick, text }) => {
   return (
     <DefaultButton
