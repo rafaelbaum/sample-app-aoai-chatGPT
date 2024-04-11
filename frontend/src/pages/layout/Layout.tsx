@@ -5,30 +5,42 @@ import { CopyRegular } from '@fluentui/react-icons'
 
 import { CosmosDBStatus, uploadFile } from "../../api";
 import Contoso from '../../assets/Contoso.svg'
-import { HistoryButton, ShareButton } from '../../components/common/Button'
+import { HistoryButton, ShareButton, StorageButton } from '../../components/common/Button'
 import { AppStateContext } from '../../state/AppProvider'
 
 import styles from './Layout.module.css'
+import DropZone from './DropZone';
 
 const Layout = () => {
   const [isSharePanelOpen, setIsSharePanelOpen] = useState<boolean>(false)
+  const [isStoragePanelOpen, setIsStoragePanelOpen] = useState<boolean>(false);
   const [copyClicked, setCopyClicked] = useState<boolean>(false)
   const [copyText, setCopyText] = useState<string>('Copy URL')
   const [shareLabel, setShareLabel] = useState<string | undefined>('Share')
+  const [storageLabel, setStorageLabel] = useState<string | undefined>("Storage");
   const [hideHistoryLabel, setHideHistoryLabel] = useState<string>('Hide chat history')
   const [showHistoryLabel, setShowHistoryLabel] = useState<string>('Show chat history')
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const appStateContext = useContext(AppStateContext)
   const ui = appStateContext?.state.frontendSettings?.ui
 
   const handleShareClick = () => {
-    setIsSharePanelOpen(true)
-  }
+    setIsSharePanelOpen(true);
+};
 
-  const handleSharePanelDismiss = () => {
-    setIsSharePanelOpen(false)
-    setCopyClicked(false)
-    setCopyText('Copy URL')
-  }
+const handleStorageClick = () => {
+    setIsStoragePanelOpen(true);
+};
+
+const handleSharePanelDismiss = () => {
+    setIsSharePanelOpen(false);
+    setCopyClicked(false);
+    setCopyText("Copy URL");
+};
+
+const handleStoragePanelDismiss = () => {
+    setIsStoragePanelOpen(false);
+};
 
   const handleCopyClick = () => {
     navigator.clipboard.writeText(window.location.href)
