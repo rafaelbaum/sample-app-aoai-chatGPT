@@ -11,6 +11,7 @@ import { AppStateContext } from '../../state/AppProvider'
 import styles from './Layout.module.css'
 import DropZone from './DropZone';
 
+
 const Layout = () => {
   const [isSharePanelOpen, setIsSharePanelOpen] = useState<boolean>(false)
   const [isStoragePanelOpen, setIsStoragePanelOpen] = useState<boolean>(false);
@@ -60,24 +61,37 @@ const handleStoragePanelDismiss = () => {
     
     const handleSaveButtonClick = async () => {
         if (uploadedFiles.length === 0) {
-            alert("No files to upload.");
-            return;
+            console.error("No files to upload.");
+            return; // Optionally inform the user to select files
         }
+    
+        // Define the container name where files should be uploaded
+        const containerName = import.meta.env.VITE_CONTAINER_NAME; // Replace with your actual container name
     
         try {
-            for (const file of uploadedFiles) {
-                const response = await uploadFile(file);
-                console.log('Upload response:', response); // Log the response or handle it as needed
-            }
-            alert("All files have been successfully uploaded.");
-            setUploadedFiles([]); // Clear the list after uploading
-            handleStoragePanelDismiss(); // Optionally close the panel
+            // Iterate over all uploaded files
+            const uploadPromises = uploadedFiles.map(file =>
+                uploadFile(containerName, file)
+            );
+    
+            // Wait for all files to be uploaded
+            const results = await Promise.all(uploadPromises);
+    
+            // Here you can handle the results of each upload
+            console.log("All files uploaded successfully:", results);
+    
+            // Clear uploaded files state and close the storage panel
+            setUploadedFiles([]);
+            handleStoragePanelDismiss();
+    
+            // Optional: Provide user feedback about successful uploads
         } catch (error) {
-            alert("An error occurred during file upload.");
-            console.error('Upload error:', error);
+            // Handle errors for any failed uploads
+            console.error("Error uploading files:", error);
+    
+            // Optional: Provide user feedback about the failure
         }
     };
-    
     
 
     const handleCancelStorage = () => {
@@ -86,11 +100,11 @@ const handleStoragePanelDismiss = () => {
     };
       
 
-  useEffect(() => {
-    if (copyClicked) {
-      setCopyText('Copied URL')
-    }
-  }, [copyClicked])
+    useEffect(() => {
+        if (copyClicked) {
+            setCopyText("Copied URL");
+        }
+    }, [copyClicked]);
 
   useEffect(() => {}, [appStateContext?.state.isCosmosDBAvailable.status])
 
