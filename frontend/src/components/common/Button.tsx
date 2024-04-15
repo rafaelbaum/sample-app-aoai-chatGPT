@@ -23,7 +23,7 @@ export const StorageButton: React.FC<ButtonProps> = ({ onClick, text }) => {
   return (
     <CommandBarButton
       className={styles.shareButtonRoot}
-      iconProps={{ iconName: 'cilStorage' }}
+      iconProps={{ iconName: '' }}
       onClick={onClick}
       text={text}
     />

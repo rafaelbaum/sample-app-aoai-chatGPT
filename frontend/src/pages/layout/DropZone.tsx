@@ -39,7 +39,9 @@ const DropZone: React.FC<DropZoneProps> = ({ onFilesDropped }) => {
                 border: '2px dashed #ccc',
                 borderRadius: '5px',
                 padding: '20px',
-                textAlign: 'center'
+                textAlign: 'center',
+                width: '100%', 
+                height: '300px' 
             }}
         >
             <div>Drop files here</div>
