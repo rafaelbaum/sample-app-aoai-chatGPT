@@ -4,10 +4,10 @@ import { SquareRegular, ShieldLockRegular, ErrorCircleRegular } from '@fluentui/
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import rehypeRaw from 'rehype-raw'
-import uuid from 'react-uuid'
-import { isEmpty } from 'lodash'
-import DOMPurify from 'dompurify'
+import rehypeRaw from "rehype-raw";
+import uuid from 'react-uuid';
+import { isEmpty } from "lodash";
+import DOMPurify from 'dompurify';
 
 import styles from './Chat.module.css'
 import Contoso from '../../assets/Contoso.svg'
