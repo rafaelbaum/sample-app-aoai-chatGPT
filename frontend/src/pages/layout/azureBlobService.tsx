@@ -1,7 +1,7 @@
 import { BlobServiceClient } from '@azure/storage-blob';
 
 const storageAccountName = import.meta.env.VITE_STORAGE_ACCOUNT_NAME;
-const sasToken = "sv=2022-11-02&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2024-04-30T19:53:22Z&st=2024-04-09T11:53:22Z&spr=https,http&sig=RIuBSg%2B0VwDVo5hefFzzCG3grclNfRAE%2F6BTZoPNWPI%3D";
+const sasToken = import.meta.env.VITE_SAS_TOKEN;
 
 export const getBlobServiceClient = () => {
     const blobServiceClient = new BlobServiceClient(
