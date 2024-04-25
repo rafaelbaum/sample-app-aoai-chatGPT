@@ -195,79 +195,82 @@ const Chat = () => {
       if (response?.body) {
         const reader = response.body.getReader()
 
-        let runningText = ''
-        while (true) {
-          setProcessMessages(messageStatus.Processing)
-          const { done, value } = await reader.read()
-          if (done) break
+                let runningText = "";
+                while (true) {
+                    setProcessMessages(messageStatus.Processing)
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-          var text = new TextDecoder('utf-8').decode(value)
-          const objects = text.split('\n')
-          objects.forEach(obj => {
-            try {
-              if (obj !== '' && obj !== '{}') {
-                runningText += obj
-                result = JSON.parse(runningText)
-                if (result.choices?.length > 0) {
-                  result.choices[0].messages.forEach(msg => {
-                    msg.id = result.id
-                    msg.date = new Date().toISOString()
-                  })
-                  if (result.choices[0].messages?.some(m => m.role === ASSISTANT)) {
-                    setShowLoadingMessage(false)
-                  }
-                  result.choices[0].messages.forEach(resultObj => {
-                    processResultMessage(resultObj, userMessage, conversationId)
-                  })
-                } else if (result.error) {
-                  throw Error(result.error)
+                    var text = new TextDecoder("utf-8").decode(value);
+                    const objects = text.split("\n");
+                    objects.forEach((obj) => {
+                        try {
+                            if (obj !== "" && obj !== "{}") {
+                                runningText += obj;
+                                result = JSON.parse(runningText);
+                                if (result.choices?.length > 0) {
+                                    result.choices[0].messages.forEach((msg) => {
+                                        msg.id = result.id;
+                                        msg.date = new Date().toISOString();
+                                    })
+                                    if (result.choices[0].messages?.some(m => m.role === ASSISTANT)) {
+                                        setShowLoadingMessage(false);
+                                    }
+                                    result.choices[0].messages.forEach((resultObj) => {
+                                        processResultMessage(resultObj, userMessage, conversationId);
+                                    })
+                                }
+                                else if (result.error) {
+                                    throw Error(result.error);
+                                }
+                                runningText = "";
+                            }
+                        }
+                        catch (e) {
+                            if (!(e instanceof SyntaxError)) {
+                                console.error(e);
+                                throw e;
+                            } else {
+                                console.log("Incomplete message. Continuing...")
+                            }
+                        }
+                    });
                 }
-                runningText = ''
-              }
-            } catch (e) {
-              if (!(e instanceof SyntaxError)) {
-                console.error(e)
-                throw e
-              } else {
-                console.log('Incomplete message. Continuing...')
-              }
+                conversation.messages.push(toolMessage, assistantMessage)
+                appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: conversation });
+                setMessages([...messages, toolMessage, assistantMessage]);
             }
-          })
-        }
-        conversation.messages.push(toolMessage, assistantMessage)
-        appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: conversation })
-        setMessages([...messages, toolMessage, assistantMessage])
-      }
-    } catch (e) {
-      if (!abortController.signal.aborted) {
-        let errorMessage =
-          'An error occurred. Please try again. If the problem persists, please contact the site administrator.'
-        if (result.error?.message) {
-          errorMessage = result.error.message
-        } else if (typeof result.error === 'string') {
-          errorMessage = result.error
-        }
 
-        errorMessage = parseErrorMessage(errorMessage)
+        } catch (e) {
+            if (!abortController.signal.aborted) {
+                let errorMessage = "An error occurred. Please try again. If the problem persists, please contact the site administrator.";
+                if (result.error?.message) {
+                    errorMessage = result.error.message;
+                }
+                else if (typeof result.error === "string") {
+                    errorMessage = result.error;
+                }
 
-        let errorChatMsg: ChatMessage = {
-          id: uuid(),
-          role: ERROR,
-          content: errorMessage,
-          date: new Date().toISOString()
+                errorMessage = parseErrorMessage(errorMessage);
+
+                let errorChatMsg: ChatMessage = {
+                    id: uuid(),
+                    role: ERROR,
+                    content: errorMessage,
+                    date: new Date().toISOString()
+                }
+                conversation.messages.push(errorChatMsg);
+                appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: conversation });
+                setMessages([...messages, errorChatMsg]);
+            } else {
+                setMessages([...messages, userMessage])
+            }
+        } finally {
+            setIsLoading(false);
+            setShowLoadingMessage(false);
+            abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+            setProcessMessages(messageStatus.Done)
         }
-        conversation.messages.push(errorChatMsg)
-        appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: conversation })
-        setMessages([...messages, errorChatMsg])
-      } else {
-        setMessages([...messages, userMessage])
-      }
-    } finally {
-      setIsLoading(false)
-      setShowLoadingMessage(false)
-      abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-      setProcessMessages(messageStatus.Done)
-    }
 
     return abortController.abort()
   }
@@ -285,69 +288,66 @@ const Chat = () => {
       date: new Date().toISOString()
     }
 
-    //api call params set here (generate)
-    let request: ConversationRequest
-    let conversation
-    if (conversationId) {
-      conversation = appStateContext?.state?.chatHistory?.find(conv => conv.id === conversationId)
-      if (!conversation) {
-        console.error('Conversation not found.')
-        setIsLoading(false)
-        setShowLoadingMessage(false)
-        abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-        return
-      } else {
-        conversation.messages.push(userMessage)
-        request = {
-          messages: [...conversation.messages.filter(answer => answer.role !== ERROR)]
-        }
-      }
-    } else {
-      request = {
-        messages: [userMessage].filter(answer => answer.role !== ERROR)
-      }
-      setMessages(request.messages)
-    }
-    let result = {} as ChatResponse
-    var errorResponseMessage = 'Please try again. If the problem persists, please contact the site administrator.'
-    try {
-      const response = conversationId
-        ? await historyGenerate(request, abortController.signal, conversationId)
-        : await historyGenerate(request, abortController.signal)
-      if (!response?.ok) {
-        const responseJson = await response.json()
-        errorResponseMessage =
-          responseJson.error === undefined ? errorResponseMessage : parseErrorMessage(responseJson.error)
-        let errorChatMsg: ChatMessage = {
-          id: uuid(),
-          role: ERROR,
-          content: `There was an error generating a response. Chat history can't be saved at this time. ${errorResponseMessage}`,
-          date: new Date().toISOString()
-        }
-        let resultConversation
+        //api call params set here (generate)
+        let request: ConversationRequest;
+        let conversation;
         if (conversationId) {
-          resultConversation = appStateContext?.state?.chatHistory?.find(conv => conv.id === conversationId)
-          if (!resultConversation) {
-            console.error('Conversation not found.')
-            setIsLoading(false)
-            setShowLoadingMessage(false)
-            abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-            return
-          }
-          resultConversation.messages.push(errorChatMsg)
+            conversation = appStateContext?.state?.chatHistory?.find((conv) => conv.id === conversationId)
+            if (!conversation) {
+                console.error("Conversation not found.");
+                setIsLoading(false);
+                setShowLoadingMessage(false);
+                abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+                return;
+            } else {
+                conversation.messages.push(userMessage);
+                request = {
+                    messages: [...conversation.messages.filter((answer) => answer.role !== ERROR)]
+                };
+            }
         } else {
-          setMessages([...messages, userMessage, errorChatMsg])
-          setIsLoading(false)
-          setShowLoadingMessage(false)
-          abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-          return
+            request = {
+                messages: [userMessage].filter((answer) => answer.role !== ERROR)
+            };
+            setMessages(request.messages)
         }
-        appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: resultConversation })
-        setMessages([...resultConversation.messages])
-        return
-      }
-      if (response?.body) {
-        const reader = response.body.getReader()
+        let result = {} as ChatResponse;
+        var errorResponseMessage = "Please try again. If the problem persists, please contact the site administrator.";
+        try {
+            const response = conversationId ? await historyGenerate(request, abortController.signal, conversationId) : await historyGenerate(request, abortController.signal);
+            if (!response?.ok) {
+                const responseJson = await response.json();
+                errorResponseMessage = responseJson.error === undefined ? errorResponseMessage : parseErrorMessage(responseJson.error);
+                let errorChatMsg: ChatMessage = {
+                    id: uuid(),
+                    role: ERROR,
+                    content: `There was an error generating a response. Chat history can't be saved at this time. ${errorResponseMessage}`,
+                    date: new Date().toISOString()
+                }
+                let resultConversation;
+                if (conversationId) {
+                    resultConversation = appStateContext?.state?.chatHistory?.find((conv) => conv.id === conversationId)
+                    if (!resultConversation) {
+                        console.error("Conversation not found.");
+                        setIsLoading(false);
+                        setShowLoadingMessage(false);
+                        abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+                        return;
+                    }
+                    resultConversation.messages.push(errorChatMsg);
+                } else {
+                    setMessages([...messages, userMessage, errorChatMsg])
+                    setIsLoading(false);
+                    setShowLoadingMessage(false);
+                    abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+                    return;
+                }
+                appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: resultConversation });
+                setMessages([...resultConversation.messages]);
+                return;
+            }
+            if (response?.body) {
+                const reader = response.body.getReader();
 
         let runningText = ''
         while (true) {
@@ -393,190 +393,156 @@ const Chat = () => {
           })
         }
 
-        let resultConversation
-        if (conversationId) {
-          resultConversation = appStateContext?.state?.chatHistory?.find(conv => conv.id === conversationId)
-          if (!resultConversation) {
-            console.error('Conversation not found.')
-            setIsLoading(false)
-            setShowLoadingMessage(false)
-            abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-            return
-          }
-          isEmpty(toolMessage)
-            ? resultConversation.messages.push(assistantMessage)
-            : resultConversation.messages.push(toolMessage, assistantMessage)
-        } else {
-          resultConversation = {
-            id: result.history_metadata.conversation_id,
-            title: result.history_metadata.title,
-            messages: [userMessage],
-            date: result.history_metadata.date
-          }
-          isEmpty(toolMessage)
-            ? resultConversation.messages.push(assistantMessage)
-            : resultConversation.messages.push(toolMessage, assistantMessage)
-        }
-        if (!resultConversation) {
-          setIsLoading(false)
-          setShowLoadingMessage(false)
-          abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-          return
-        }
-        appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: resultConversation })
-        isEmpty(toolMessage)
-          ? setMessages([...messages, assistantMessage])
-          : setMessages([...messages, toolMessage, assistantMessage])
-      }
-    } catch (e) {
-      if (!abortController.signal.aborted) {
-        let errorMessage = `An error occurred. ${errorResponseMessage}`
-        if (result.error?.message) {
-          errorMessage = result.error.message
-        } else if (typeof result.error === 'string') {
-          errorMessage = result.error
-        }
-
-        errorMessage = parseErrorMessage(errorMessage)
-
-        let errorChatMsg: ChatMessage = {
-          id: uuid(),
-          role: ERROR,
-          content: errorMessage,
-          date: new Date().toISOString()
-        }
-        let resultConversation
-        if (conversationId) {
-          resultConversation = appStateContext?.state?.chatHistory?.find(conv => conv.id === conversationId)
-          if (!resultConversation) {
-            console.error('Conversation not found.')
-            setIsLoading(false)
-            setShowLoadingMessage(false)
-            abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-            return
-          }
-          resultConversation.messages.push(errorChatMsg)
-        } else {
-          if (!result.history_metadata) {
-            console.error('Error retrieving data.', result)
-            let errorChatMsg: ChatMessage = {
-              id: uuid(),
-              role: ERROR,
-              content: errorMessage,
-              date: new Date().toISOString()
+                let resultConversation;
+                if (conversationId) {
+                    resultConversation = appStateContext?.state?.chatHistory?.find((conv) => conv.id === conversationId)
+                    if (!resultConversation) {
+                        console.error("Conversation not found.");
+                        setIsLoading(false);
+                        setShowLoadingMessage(false);
+                        abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+                        return;
+                    }
+                    isEmpty(toolMessage) ?
+                        resultConversation.messages.push(assistantMessage) :
+                        resultConversation.messages.push(toolMessage, assistantMessage)
+                } else {
+                    resultConversation = {
+                        id: result.history_metadata.conversation_id,
+                        title: result.history_metadata.title,
+                        messages: [userMessage],
+                        date: result.history_metadata.date
+                    }
+                    isEmpty(toolMessage) ?
+                        resultConversation.messages.push(assistantMessage) :
+                        resultConversation.messages.push(toolMessage, assistantMessage)
+                }
+                if (!resultConversation) {
+                    setIsLoading(false);
+                    setShowLoadingMessage(false);
+                    abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+                    return;
+                }
+                appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: resultConversation });
+                isEmpty(toolMessage) ?
+                    setMessages([...messages, assistantMessage]) :
+                    setMessages([...messages, toolMessage, assistantMessage]);
             }
-            setMessages([...messages, userMessage, errorChatMsg])
-            setIsLoading(false)
-            setShowLoadingMessage(false)
-            abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-            return
-          }
-          resultConversation = {
-            id: result.history_metadata.conversation_id,
-            title: result.history_metadata.title,
-            messages: [userMessage],
-            date: result.history_metadata.date
-          }
-          resultConversation.messages.push(errorChatMsg)
-        }
-        if (!resultConversation) {
-          setIsLoading(false)
-          setShowLoadingMessage(false)
-          abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-          return
-        }
-        appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: resultConversation })
-        setMessages([...messages, errorChatMsg])
-      } else {
-        setMessages([...messages, userMessage])
-      }
-    } finally {
-      setIsLoading(false)
-      setShowLoadingMessage(false)
-      abortFuncs.current = abortFuncs.current.filter(a => a !== abortController)
-      setProcessMessages(messageStatus.Done)
-    }
-    return abortController.abort()
-  }
 
-  const clearChat = async () => {
-    setClearingChat(true)
-    if (appStateContext?.state.currentChat?.id && appStateContext?.state.isCosmosDBAvailable.cosmosDB) {
-      let response = await historyClear(appStateContext?.state.currentChat.id)
-      if (!response.ok) {
-        setErrorMsg({
-          title: 'Error clearing current chat',
-          subtitle: 'Please try again. If the problem persists, please contact the site administrator.'
-        })
-        toggleErrorDialog()
-      } else {
-        appStateContext?.dispatch({
-          type: 'DELETE_CURRENT_CHAT_MESSAGES',
-          payload: appStateContext?.state.currentChat.id
-        })
-        appStateContext?.dispatch({ type: 'UPDATE_CHAT_HISTORY', payload: appStateContext?.state.currentChat })
-        setActiveCitation(undefined)
-        setIsCitationPanelOpen(false)
-        setMessages([])
-      }
-    }
-    setClearingChat(false)
-  }
+        } catch (e) {
+            if (!abortController.signal.aborted) {
+                let errorMessage = `An error occurred. ${errorResponseMessage}`;
+                if (result.error?.message) {
+                    errorMessage = result.error.message;
+                }
+                else if (typeof result.error === "string") {
+                    errorMessage = result.error;
+                }
 
-  const tryGetRaiPrettyError = (errorMessage: string) => {
-    try {
-      // Using a regex to extract the JSON part that contains "innererror"
-      const match = errorMessage.match(/'innererror': ({.*})\}\}/)
-      if (match) {
-        // Replacing single quotes with double quotes and converting Python-like booleans to JSON booleans
-        const fixedJson = match[1]
-          .replace(/'/g, '"')
-          .replace(/\bTrue\b/g, 'true')
-          .replace(/\bFalse\b/g, 'false')
-        const innerErrorJson = JSON.parse(fixedJson)
-        let reason = ''
-        // Check if jailbreak content filter is the reason of the error
-        const jailbreak = innerErrorJson.content_filter_result.jailbreak
-        if (jailbreak.filtered === true) {
-          reason = 'Jailbreak'
-        }
+                errorMessage = parseErrorMessage(errorMessage);
 
-        // Returning the prettified error message
-        if (reason !== '') {
-          return (
-            'The prompt was filtered due to triggering Azure OpenAI’s content filtering system.\n' +
-            'Reason: This prompt contains content flagged as ' +
-            reason +
-            '\n\n' +
-            'Please modify your prompt and retry. Learn more: https://go.microsoft.com/fwlink/?linkid=2198766'
-          )
+                let errorChatMsg: ChatMessage = {
+                    id: uuid(),
+                    role: ERROR,
+                    content: errorMessage,
+                    date: new Date().toISOString()
+                }
+                let resultConversation;
+                if (conversationId) {
+                    resultConversation = appStateContext?.state?.chatHistory?.find((conv) => conv.id === conversationId)
+                    if (!resultConversation) {
+                        console.error("Conversation not found.");
+                        setIsLoading(false);
+                        setShowLoadingMessage(false);
+                        abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+                        return;
+                    }
+                    resultConversation.messages.push(errorChatMsg);
+                } else {
+                    if (!result.history_metadata) {
+                        console.error("Error retrieving data.", result);
+                        let errorChatMsg: ChatMessage = {
+                            id: uuid(),
+                            role: ERROR,
+                            content: errorMessage,
+                            date: new Date().toISOString()
+                        } 
+                        setMessages([...messages, userMessage, errorChatMsg])
+                        setIsLoading(false);
+                        setShowLoadingMessage(false);
+                        abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+                        return;
+                    }
+                    resultConversation = {
+                        id: result.history_metadata.conversation_id,
+                        title: result.history_metadata.title,
+                        messages: [userMessage],
+                        date: result.history_metadata.date
+                    }
+                    resultConversation.messages.push(errorChatMsg);
+                }
+                if (!resultConversation) {
+                    setIsLoading(false);
+                    setShowLoadingMessage(false);
+                    abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+                    return;
+                }
+                appStateContext?.dispatch({ type: 'UPDATE_CURRENT_CHAT', payload: resultConversation });
+                setMessages([...messages, errorChatMsg]);
+            } else {
+                setMessages([...messages, userMessage])
+            }
+        } finally {
+            setIsLoading(false);
+            setShowLoadingMessage(false);
+            abortFuncs.current = abortFuncs.current.filter(a => a !== abortController);
+            setProcessMessages(messageStatus.Done)
         }
-      }
-    } catch (e) {
-      console.error('Failed to parse the error:', e)
-    }
-    return errorMessage
-  }
+        return abortController.abort();
 
-  const parseErrorMessage = (errorMessage: string) => {
-    let errorCodeMessage = errorMessage.substring(0, errorMessage.indexOf('-') + 1)
-    const innerErrorCue = "{\\'error\\': {\\'message\\': "
-    if (errorMessage.includes(innerErrorCue)) {
-      try {
-        let innerErrorString = errorMessage.substring(errorMessage.indexOf(innerErrorCue))
-        if (innerErrorString.endsWith("'}}")) {
-          innerErrorString = innerErrorString.substring(0, innerErrorString.length - 3)
-        }
-        innerErrorString = innerErrorString.replaceAll("\\'", "'")
-        let newErrorMessage = errorCodeMessage + ' ' + innerErrorString
-        errorMessage = newErrorMessage
-      } catch (e) {
-        console.error('Error parsing inner error message: ', e)
-      }
     }
 
-    return tryGetRaiPrettyError(errorMessage)
-  }
+    const clearChat = async () => {
+        setClearingChat(true)
+        if (appStateContext?.state.currentChat?.id && appStateContext?.state.isCosmosDBAvailable.cosmosDB) {
+            let response = await historyClear(appStateContext?.state.currentChat.id)
+            if (!response.ok) {
+                setErrorMsg({
+                    title: "Error clearing current chat",
+                    subtitle: "Please try again. If the problem persists, please contact the site administrator.",
+                })
+                toggleErrorDialog();
+            } else {
+                appStateContext?.dispatch({ type: 'DELETE_CURRENT_CHAT_MESSAGES', payload: appStateContext?.state.currentChat.id });
+                appStateContext?.dispatch({ type: 'UPDATE_CHAT_HISTORY', payload: appStateContext?.state.currentChat });
+                setActiveCitation(undefined);
+                setIsCitationPanelOpen(false);
+                setMessages([])
+            }
+        }
+        setClearingChat(false)
+    };
+
+    const parseErrorMessage = (errorMessage: string) => {
+        let errorCodeMessage = errorMessage.substring(0, errorMessage.indexOf("-") + 1);
+        const innerErrorCue = "{\\'error\\': {\\'message\\': ";
+        if (errorMessage.includes(innerErrorCue))
+        {
+            try {
+                let innerErrorString = errorMessage.substring(errorMessage.indexOf(innerErrorCue));
+                if (innerErrorString.endsWith("'}}")) {
+                    innerErrorString = innerErrorString.substring(0, innerErrorString.length - 3);
+                }
+                innerErrorString = innerErrorString.replaceAll("\\'", "'")
+                let newErrorMessage = errorCodeMessage + " " + innerErrorString;
+                errorMessage = newErrorMessage;
+
+            } catch (e) {
+                console.error("Error parsing inner error message: ", e);
+            }
+        }
+        return errorMessage;
+    };
 
   const newChat = () => {
     setProcessMessages(messageStatus.Processing)
