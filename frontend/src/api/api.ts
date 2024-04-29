@@ -345,16 +345,16 @@ export const historyMessageFeedback = async (messageId: string, feedback: string
     .then(res => {
       return res
     })
-    .catch((err) => {
-        console.error("There was an issue logging feedback.");
-        let errRes: Response = {
-            ...new Response,
-            ok: false,
-            status: 500,
-        }
-        return errRes;
+    .catch(_err => {
+      console.error('There was an issue logging feedback.')
+      const errRes: Response = {
+        ...new Response(),
+        ok: false,
+        status: 500
+      }
+      return errRes
     })
-    return response;
+  return response
 }
 
 export const uploadFile = async (file: File) => {

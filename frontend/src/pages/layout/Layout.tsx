@@ -1,45 +1,34 @@
-import { Outlet, Link } from "react-router-dom";
-import styles from "./Layout.module.css";
-import Contoso from "../../assets/Contoso.svg";
-import { CopyRegular } from "@fluentui/react-icons";
+import { useContext, useEffect, useState } from 'react'
+import { Link, Outlet } from 'react-router-dom'
 import { Dialog, Stack, TextField, PrimaryButton, DefaultButton } from "@fluentui/react";
-import { useContext, useEffect, useState } from "react";
-import { HistoryButton, ShareButton, StorageButton } from "../../components/common/Button";
-import { AppStateContext } from "../../state/AppProvider";
-import { CosmosDBStatus, uploadFile } from "../../api";
-import DropZone from './DropZone';
+import { CopyRegular } from '@fluentui/react-icons'
 
+import { CosmosDBStatus, uploadFile } from "../../api";
+import Contoso from '../../assets/Contoso.svg'
+import { HistoryButton, ShareButton } from '../../components/common/Button'
+import { AppStateContext } from '../../state/AppProvider'
+
+import styles from './Layout.module.css'
 
 const Layout = () => {
-    const [isSharePanelOpen, setIsSharePanelOpen] = useState<boolean>(false);
-    const [isStoragePanelOpen, setIsStoragePanelOpen] = useState<boolean>(false);
-    const [copyClicked, setCopyClicked] = useState<boolean>(false);
-    const [copyText, setCopyText] = useState<string>("Copy URL");
-    const [shareLabel, setShareLabel] = useState<string | undefined>("Share");
-    const [storageLabel, setStorageLabel] = useState<string | undefined>("Storage");
-    const [hideHistoryLabel, setHideHistoryLabel] = useState<string>("Hide chat history");
-    const [showHistoryLabel, setShowHistoryLabel] = useState<string>("Show chat history");
-    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-    const appStateContext = useContext(AppStateContext)
-    const ui = appStateContext?.state.frontendSettings?.ui;
+  const [isSharePanelOpen, setIsSharePanelOpen] = useState<boolean>(false)
+  const [copyClicked, setCopyClicked] = useState<boolean>(false)
+  const [copyText, setCopyText] = useState<string>('Copy URL')
+  const [shareLabel, setShareLabel] = useState<string | undefined>('Share')
+  const [hideHistoryLabel, setHideHistoryLabel] = useState<string>('Hide chat history')
+  const [showHistoryLabel, setShowHistoryLabel] = useState<string>('Show chat history')
+  const appStateContext = useContext(AppStateContext)
+  const ui = appStateContext?.state.frontendSettings?.ui
 
-    const handleShareClick = () => {
-        setIsSharePanelOpen(true);
-    };
+  const handleShareClick = () => {
+    setIsSharePanelOpen(true)
+  }
 
-    const handleStorageClick = () => {
-        setIsStoragePanelOpen(true);
-    };
-
-    const handleSharePanelDismiss = () => {
-        setIsSharePanelOpen(false);
-        setCopyClicked(false);
-        setCopyText("Copy URL");
-    };
-
-    const handleStoragePanelDismiss = () => {
-        setIsStoragePanelOpen(false);
-    };
+  const handleSharePanelDismiss = () => {
+    setIsSharePanelOpen(false)
+    setCopyClicked(false)
+    setCopyText('Copy URL')
+  }
 
   const handleCopyClick = () => {
     navigator.clipboard.writeText(window.location.href)
@@ -85,34 +74,34 @@ const Layout = () => {
     };
       
 
-    useEffect(() => {
-        if (copyClicked) {
-            setCopyText("Copied URL");
-        }
-    }, [copyClicked]);
+  useEffect(() => {
+    if (copyClicked) {
+      setCopyText('Copied URL')
+    }
+  }, [copyClicked])
 
   useEffect(() => {}, [appStateContext?.state.isCosmosDBAvailable.status])
 
-    useEffect(() => {
-        const handleResize = () => {
-          if (window.innerWidth < 480) {
-            setShareLabel(undefined)
-            setStorageLabel("S")
-            setHideHistoryLabel("Hide history")
-            setShowHistoryLabel("Show history")
-          } else {
-            setShareLabel("Share")
-            setStorageLabel("Storage")
-            setHideHistoryLabel("Hide chat history")
-            setShowHistoryLabel("Show chat history")
-          }
-        };
-    
-        window.addEventListener('resize', handleResize);
-        handleResize();
-    
-        return () => window.removeEventListener('resize', handleResize);
-      }, []);
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 480) {
+        setShareLabel(undefined)
+        setStorageLabel("S")
+        setHideHistoryLabel("Hide history")
+        setShowHistoryLabel("Show history")
+      } else {
+        setShareLabel("Share")
+        setStorageLabel("Storage")
+        setHideHistoryLabel("Hide chat history")
+        setShowHistoryLabel("Show chat history")
+      }
+    };
+
+    window.addEventListener('resize', handleResize)
+    handleResize()
+
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
       return (
         <div className={styles.layout}>
