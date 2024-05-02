@@ -1,6 +1,10 @@
-import { chatHistorySampleData } from '../constants/chatHistory'
+import { UserInfo, ConversationRequest, Conversation, ChatMessage, CosmosDBHealth, CosmosDBStatus } from "./models";
+import { chatHistorySampleData } from "../constants/chatHistory";
+import { Buffer } from 'buffer';
 
-import { ChatMessage, Conversation, ConversationRequest, CosmosDBHealth, CosmosDBStatus, UserInfo } from './models'
+const storageAccountName = import.meta.env.VITE_STORAGE_ACCOUNT_NAME;
+const sasToken = import.meta.env.VITE_SAS_TOKEN;
+const apiUrl = `https://${storageAccountName}.blob.core.windows.net`;
 
 export async function conversationApi(options: ConversationRequest, abortSignal: AbortSignal): Promise<Response> {
   const response = await fetch('/conversation', {
@@ -341,14 +345,40 @@ export const historyMessageFeedback = async (messageId: string, feedback: string
     .then(res => {
       return res
     })
-    .catch(_err => {
-      console.error('There was an issue logging feedback.')
-      const errRes: Response = {
-        ...new Response(),
-        ok: false,
-        status: 500
-      }
-      return errRes
+    .catch((err) => {
+        console.error("There was an issue logging feedback.");
+        let errRes: Response = {
+            ...new Response,
+            ok: false,
+            status: 500,
+        }
+        return errRes;
     })
-  return response
+    return response;
 }
+
+export const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to upload file: ${response.statusText}`);
+        }
+
+        const jsonResponse = await response.json();
+        return jsonResponse;
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        throw error;
+    }
+};
+
+
+
+

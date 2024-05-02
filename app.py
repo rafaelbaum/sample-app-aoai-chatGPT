@@ -14,6 +14,7 @@ from quart import (
     send_from_directory,
     render_template,
 )
+from azure.storage.blob import BlobServiceClient
 
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
@@ -49,6 +50,12 @@ UI_CHAT_DESCRIPTION = (
 UI_FAVICON = os.environ.get("UI_FAVICON") or "/favicon.ico"
 UI_SHOW_SHARE_BUTTON = os.environ.get("UI_SHOW_SHARE_BUTTON", "true").lower() == "true"
 UI_SHOW_STORAGE_BUTTON = os.environ.get("UI_SHOW_STORAGE_BUTTON", "true").lower() == "true"
+
+ACCOUNT_NAME = os.environ.get('ACCOUNT_NAME')
+SAS_TOKEN = os.environ.get('SAS_TOKEN')
+
+URL = f"https://{ACCOUNT_NAME}.blob.core.windows.net"
+BLOB_SERVICE_CLIENT = BlobServiceClient(account_url=URL, credential=SAS_TOKEN)
 
 
 def create_app():
@@ -1369,6 +1376,28 @@ async def ensure_cosmos():
             )
         else:
             return jsonify({"error": "CosmosDB is not working"}), 500
+
+@bp.route("/upload", methods=["POST"])
+async def upload():
+    files = await request.files
+    if 'file' not in files:
+        return jsonify({'error': 'No file part in the request'}), 400
+
+    file = files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected for uploading'}), 400
+
+    blob_name = f"main/{file.filename}"
+    try:
+        CONTAINER_NAME = os.environ.get('CONTAINER_NAME')
+        container_client = BLOB_SERVICE_CLIENT.get_container_client(CONTAINER_NAME)
+        file_data = file.read()
+        container_client.upload_blob(name=blob_name, data=file_data, overwrite=True )
+        return jsonify({'message': 'File uploaded successfully'}), 200
+
+    except Exception as e:
+        print(e)
+        return jsonify({'error': str(e)}), 500
 
 
 async def generate_title(conversation_messages):
