@@ -13,44 +13,44 @@ import DropZone from './DropZone';
 
 
 const Layout = () => {
-  const [isSharePanelOpen, setIsSharePanelOpen] = useState<boolean>(false)
-  const [isStoragePanelOpen, setIsStoragePanelOpen] = useState<boolean>(false);
-  const [copyClicked, setCopyClicked] = useState<boolean>(false)
-  const [copyText, setCopyText] = useState<string>('Copy URL')
-  const [shareLabel, setShareLabel] = useState<string | undefined>('Share')
-  const [storageLabel, setStorageLabel] = useState<string | undefined>("Storage");
-  const [hideHistoryLabel, setHideHistoryLabel] = useState<string>('Hide chat history')
-  const [showHistoryLabel, setShowHistoryLabel] = useState<string>('Show chat history')
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const appStateContext = useContext(AppStateContext)
-  const ui = appStateContext?.state.frontendSettings?.ui
+    const [isSharePanelOpen, setIsSharePanelOpen] = useState<boolean>(false)
+    const [isStoragePanelOpen, setIsStoragePanelOpen] = useState<boolean>(false);
+    const [copyClicked, setCopyClicked] = useState<boolean>(false)
+    const [copyText, setCopyText] = useState<string>('Copy URL')
+    const [shareLabel, setShareLabel] = useState<string | undefined>('Share')
+    const [storageLabel, setStorageLabel] = useState<string | undefined>("Storage");
+    const [hideHistoryLabel, setHideHistoryLabel] = useState<string>('Hide chat history')
+    const [showHistoryLabel, setShowHistoryLabel] = useState<string>('Show chat history')
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+    const appStateContext = useContext(AppStateContext)
+    const ui = appStateContext?.state.frontendSettings?.ui
 
-  const handleShareClick = () => {
-    setIsSharePanelOpen(true);
-};
+    const handleShareClick = () => {
+        setIsSharePanelOpen(true);
+    };
 
-const handleStorageClick = () => {
-    setIsStoragePanelOpen(true);
-};
+    const handleStorageClick = () => {
+        setIsStoragePanelOpen(true);
+    };
 
-const handleSharePanelDismiss = () => {
-    setIsSharePanelOpen(false);
-    setCopyClicked(false);
-    setCopyText("Copy URL");
-};
+    const handleSharePanelDismiss = () => {
+        setIsSharePanelOpen(false);
+        setCopyClicked(false);
+        setCopyText("Copy URL");
+    };
 
-const handleStoragePanelDismiss = () => {
-    setIsStoragePanelOpen(false);
-};
+    const handleStoragePanelDismiss = () => {
+        setIsStoragePanelOpen(false);
+    };
 
-  const handleCopyClick = () => {
-    navigator.clipboard.writeText(window.location.href)
-    setCopyClicked(true)
-  }
+    const handleCopyClick = () => {
+        navigator.clipboard.writeText(window.location.href)
+        setCopyClicked(true)
+    }
 
-  const handleHistoryClick = () => {
-    appStateContext?.dispatch({ type: 'TOGGLE_CHAT_HISTORY' })
-  }
+    const handleHistoryClick = () => {
+        appStateContext?.dispatch({ type: 'TOGGLE_CHAT_HISTORY' })
+    }
 
     // Handle dropped files
     const handleFiles = (files: File[]) => {
@@ -58,13 +58,13 @@ const handleStoragePanelDismiss = () => {
         // For now, just store them in state
         setUploadedFiles([...uploadedFiles, ...files]);
     };
-    
+
     const handleSaveButtonClick = async () => {
         if (uploadedFiles.length === 0) {
             alert("No files to upload.");
             return;
         }
-    
+
         try {
             for (const file of uploadedFiles) {
                 const response = await uploadFile(file);
@@ -78,14 +78,14 @@ const handleStoragePanelDismiss = () => {
             console.error('Upload error:', error);
         }
     };
-    
-    
+
+
 
     const handleCancelStorage = () => {
         setUploadedFiles([]); // Clear uploaded files
         handleStoragePanelDismiss(); // Close the storage panel
     };
-      
+
 
     useEffect(() => {
         if (copyClicked) {
@@ -93,8 +93,7 @@ const handleStoragePanelDismiss = () => {
         }
     }, [copyClicked]);
 
-  useEffect(() => {}, [appStateContext?.state.isCosmosDBAvailable.status])
-  useEffect(() => {}, [appStateContext?.state.isCosmosDBAvailable.status])
+    useEffect(() => { }, [appStateContext?.state.isCosmosDBAvailable.status])
 
   useEffect(() => {
     const handleResize = () => {
@@ -111,19 +110,15 @@ const handleStoragePanelDismiss = () => {
       }
     };
 
-    window.addEventListener('resize', handleResize)
-    handleResize()
+        window.addEventListener('resize', handleResize)
+        handleResize()
 
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-      return (
-      return (
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
+    return (
         <div className={styles.layout}>
             {/* Header */}
-            {/* Header */}
             <header className={styles.header} role={"banner"}>
-                {/* Logo and Title */}
                 {/* Logo and Title */}
                 <Stack horizontal verticalAlign="center" horizontalAlign="space-between">
                     <Stack horizontal verticalAlign="center">
@@ -137,27 +132,22 @@ const handleStoragePanelDismiss = () => {
                         </Link>
                     </Stack>
                     {/* Buttons */}
-                    {/* Buttons */}
                     <Stack horizontal tokens={{ childrenGap: 4 }} className={styles.shareButtonContainer}>
                         {(appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured) &&
                             <HistoryButton onClick={handleHistoryClick} text={appStateContext?.state?.isChatHistoryOpen ? hideHistoryLabel : showHistoryLabel} />
                         }
-                        {ui?.show_share_button && <ShareButton onClick={handleShareClick} text={shareLabel} />}
                         {ui?.show_share_button && <ShareButton onClick={handleShareClick} text={shareLabel} />}
                         {ui?.show_storage_button && <StorageButton onClick={handleStorageClick} text={storageLabel} />}
                     </Stack>
                 </Stack>
             </header>
             {/* Main content */}
-            {/* Main content */}
             <Outlet />
-            {/* Share dialog */}
             {/* Share dialog */}
             <Dialog
                 onDismiss={handleSharePanelDismiss}
                 hidden={!isSharePanelOpen}
                 styles={{
-
                     main: [{
                         selectors: {
                             ['@media (min-width: 480px)']: {
@@ -198,17 +188,14 @@ const handleStoragePanelDismiss = () => {
                     main: [{
                         selectors: {
                             ['@media (min-width: 800px)']: {
-                                maxWidth: '90%', 
-                            ['@media (min-width: 800px)']: {
-                                maxWidth: '90%', 
+                                maxWidth: '90%',
                                 background: "#FFFFFF",
                                 boxShadow: "0px 14px 28.8px rgba(0, 0, 0, 0.24), 0px 0px 8px rgba(0, 0, 0, 0.2)",
                                 borderRadius: "8px",
-                                maxHeight: '600px', 
-                                minHeight: '300px',
-                                maxHeight: '600px', 
+                                maxHeight: '600px',
                                 minHeight: '300px',
                             }
+
                         }
                     }]
                 }}
@@ -219,8 +206,6 @@ const handleStoragePanelDismiss = () => {
             >
                 {/* File drop zone */}
                 <DropZone onFilesDropped={handleFiles} />
-
-                {/* Uploaded files */}
                 {/* Uploaded files */}
                 {uploadedFiles.length > 0 && (
                     <div className={styles.uploadedFiles}>
@@ -237,15 +222,9 @@ const handleStoragePanelDismiss = () => {
                     <PrimaryButton onClick={handleSaveButtonClick} text="Save" />
                     <DefaultButton onClick={handleCancelStorage} text="Cancel" style={{ marginLeft: '10px' }} />
                 </div>
-                {/* Save and Cancel buttons */}
-                <div style={{ textAlign: 'right', marginTop: '20px' }}>
-                    <PrimaryButton onClick={handleSaveButtonClick} text="Save" />
-                    <DefaultButton onClick={handleCancelStorage} text="Cancel" style={{ marginLeft: '10px' }} />
-                </div>
             </Dialog>
         </div>
     );
 };
 
-export default Layout
 export default Layout
