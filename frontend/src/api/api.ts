@@ -1,10 +1,5 @@
 import { UserInfo, ConversationRequest, Conversation, ChatMessage, CosmosDBHealth, CosmosDBStatus } from "./models";
 import { chatHistorySampleData } from "../constants/chatHistory";
-import { Buffer } from 'buffer';
-
-const storageAccountName = import.meta.env.VITE_STORAGE_ACCOUNT_NAME;
-const sasToken = import.meta.env.VITE_SAS_TOKEN;
-const apiUrl = `https://${storageAccountName}.blob.core.windows.net`;
 
 export async function conversationApi(options: ConversationRequest, abortSignal: AbortSignal): Promise<Response> {
   const response = await fetch('/conversation', {

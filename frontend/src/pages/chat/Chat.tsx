@@ -285,19 +285,6 @@ const Chat = () => {
       date: new Date().toISOString()
     }
 
-    const makeApiRequestWithCosmosDB = async (question: string, conversationId?: string) => {
-        setIsLoading(true);
-        setShowLoadingMessage(true);
-        const abortController = new AbortController();
-        abortFuncs.current.unshift(abortController);
-
-        const userMessage: ChatMessage = {
-            id: uuid(),
-            role: "user",
-            content: question,
-            date: new Date().toISOString(),
-        };
-
     //api call params set here (generate)
     let request: ConversationRequest
     let conversation
@@ -710,7 +697,7 @@ const Chat = () => {
   }
 
   return (
-    <div className={styles.container} style={{color: '#A9A9A9'}} role="main">
+    <div className={styles.container} role="main">
       {showAuthMessage ? (
         <Stack className={styles.chatEmptyState}>
           <ShieldLockRegular
